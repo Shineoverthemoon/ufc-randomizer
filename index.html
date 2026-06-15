@@ -556,19 +556,29 @@ const TTS_URL = 'https://tts-proxy-i1sn.onrender.com';
 let ttsAudio = null;
 
 async function speakScenario(btn, text) {
-  // iOS audio unlock MUST happen before any await
+  // iOS audio unlock MUST happen synchronously before any await
   if (!ttsAudio) {
     ttsAudio = new Audio();
     ttsAudio.play().catch(()=>{});
     ttsAudio.pause();
   }
 
-  // if already playing, stop it
-  if (!ttsAudio.paused) {
+  // stop if already playing
+  if (ttsAudio && !ttsAudio.paused) {
     ttsAudio.pause();
     ttsAudio.currentTime = 0;
     btn.textContent = '🔊 Read Aloud';
     btn.classList.remove('playing');
+    return;
+  }
+
+  // get the actual rendered text from the DOM right now
+  const el = document.getElementById('scenarioText');
+  const actualText = (el ? (el.innerText || el.textContent) : text).trim();
+
+  if (!actualText || actualText.length < 5) {
+    btn.textContent = '⏳ Still generating...';
+    setTimeout(() => { btn.textContent = '🔊 Read Aloud'; }, 1500);
     return;
   }
 
@@ -580,8 +590,9 @@ async function speakScenario(btn, text) {
     const r = await fetch(TTS_URL + '/tts', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({text})
+      body: JSON.stringify({text: actualText})
     });
+    if (!r.ok) throw new Error('Server error ' + r.status);
     const data = await r.json();
     if (data.error) throw new Error(data.error);
 
@@ -590,7 +601,7 @@ async function speakScenario(btn, text) {
       btn.textContent = '🔊 Read Aloud';
       btn.classList.remove('playing');
     };
-    ttsAudio.play();
+    await ttsAudio.play();
     btn.textContent = '⏹ Stop';
     btn.classList.remove('loading');
     btn.classList.add('playing');
@@ -598,6 +609,7 @@ async function speakScenario(btn, text) {
     console.error('TTS error:', e);
     btn.textContent = '🔊 Read Aloud';
     btn.classList.remove('loading','playing');
+    alert('TTS error: ' + e.message);
   } finally {
     btn.disabled = false;
   }
