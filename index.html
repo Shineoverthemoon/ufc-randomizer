@@ -292,6 +292,19 @@
     .vs-badge { font-size: 1.2rem; }
     .card { padding: 20px 14px; }
   }
+
+/* ── TTS button ── */
+.tts-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
+  border-radius:20px;padding:6px 14px;cursor:pointer;
+  font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;
+  color:#AAA;transition:all 0.15s;margin-top:10px;
+  -webkit-tap-highlight-color:transparent;user-select:none;
+}
+.tts-btn:hover{background:rgba(255,255,255,0.1);color:#FFF;border-color:rgba(255,255,255,0.25);}
+.tts-btn.playing{color:#FFD700;border-color:rgba(255,215,0,0.4);background:rgba(255,215,0,0.08);}
+.tts-btn.loading{opacity:0.6;cursor:wait;}
 </style>
 </head>
 <body>
@@ -535,6 +548,60 @@ rollBtn.addEventListener('click', () => {
     }
   }, 80);
 });
+</script>
+
+<script>
+// ── TTS (OpenAI Nova via proxy) ───────────────────────────
+const TTS_URL = 'https://tts-proxy-i1sn.onrender.com';
+let ttsAudio = null;
+
+async function speakScenario(btn, text) {
+  // iOS audio unlock MUST happen before any await
+  if (!ttsAudio) {
+    ttsAudio = new Audio();
+    ttsAudio.play().catch(()=>{});
+    ttsAudio.pause();
+  }
+
+  // if already playing, stop it
+  if (!ttsAudio.paused) {
+    ttsAudio.pause();
+    ttsAudio.currentTime = 0;
+    btn.textContent = '🔊 Read Aloud';
+    btn.classList.remove('playing');
+    return;
+  }
+
+  btn.textContent = '⏳ Loading...';
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  try {
+    const r = await fetch(TTS_URL + '/tts', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({text})
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+
+    ttsAudio.src = TTS_URL + data.path;
+    ttsAudio.onended = () => {
+      btn.textContent = '🔊 Read Aloud';
+      btn.classList.remove('playing');
+    };
+    ttsAudio.play();
+    btn.textContent = '⏹ Stop';
+    btn.classList.remove('loading');
+    btn.classList.add('playing');
+  } catch(e) {
+    console.error('TTS error:', e);
+    btn.textContent = '🔊 Read Aloud';
+    btn.classList.remove('loading','playing');
+  } finally {
+    btn.disabled = false;
+  }
+}
 </script>
 </body>
 </html>
