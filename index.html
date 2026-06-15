@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UFC 6 Fight Night — Joe vs Jack</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blood:   #C0181A;
+    --gold:    #D4A017;
+    --dark:    #0A0A0A;
+    --panel:   #141414;
+    --border:  #2A2A2A;
+    --muted:   #555;
+    --text:    #E8E8E8;
+    --dim:     #888;
+  }
+
+  body {
+    background: var(--dark);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 8vw, 4.5rem);
+    letter-spacing: 0.04em;
+    color: var(--text);
+    text-align: center;
+    line-height: 1;
+  }
+  .logo span { color: var(--blood); }
+  .subtitle {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-top: 6px;
+    text-align: center;
+  }
+
+  /* ── Card layout ── */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 760px;
+    margin-top: 36px;
+  }
+
+  /* ── Picker row ── */
+  .pickers {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    gap: 0;
+    align-items: start;
+  }
+
+  .picker-col { display: flex; flex-direction: column; gap: 8px; }
+
+  .player-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .vs-col {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 28px;
+  }
+  .vs-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    color: var(--blood);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Autocomplete input ── */
+  .ac-wrap { position: relative; }
+
+  .ac-input {
+    width: 100%;
+    background: #1C1C1C;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    padding: 11px 14px;
+    outline: none;
+    transition: border-color 0.18s;
+  }
+  .ac-input:focus { border-color: var(--blood); }
+  .ac-input::placeholder { color: var(--muted); }
+
+  .ac-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: #1E1E1E;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  }
+  .ac-dropdown.open { display: block; }
+
+  .ac-item {
+    padding: 9px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text);
+    border-bottom: 1px solid #222;
+    transition: background 0.1s;
+  }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover, .ac-item.focused { background: #2A2A2A; }
+  .ac-item mark {
+    background: none;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+  }
+
+  /* ── Randomize button ── */
+  .btn-wrap { display: flex; justify-content: center; }
+
+  .btn-randomize {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.1em;
+    background: var(--blood);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 48px;
+    cursor: pointer;
+    transition: transform 0.12s, background 0.15s;
+    user-select: none;
+  }
+  .btn-randomize:hover  { background: #e01f22; transform: scale(1.03); }
+  .btn-randomize:active { transform: scale(0.97); }
+  .btn-randomize:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── Result ── */
+  .result-wrap {
+    margin-top: 28px;
+    min-height: 130px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* slot machine rows */
+  .slot-row {
+    display: flex;
+    width: 100%;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .slot-panel {
+    flex: 1;
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  .slot-owner {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .slot-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.1rem, 4vw, 1.6rem);
+    text-align: center;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+    transition: opacity 0.1s;
+  }
+
+  .slot-name.rolling {
+    animation: roll 0.06s steps(1) infinite;
+  }
+
+  @keyframes roll {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.2; }
+    100% { opacity: 1; }
+  }
+
+  .slot-vs {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    color: var(--blood);
+    align-self: center;
+    flex-shrink: 0;
+  }
+
+  /* winner glow */
+  .slot-panel.winner {
+    border-color: var(--gold);
+    box-shadow: 0 0 18px rgba(212,160,23,0.25);
+  }
+  .slot-panel.winner .slot-name { color: var(--gold); }
+
+  /* result label */
+  .result-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--dim);
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .result-label.visible { opacity: 1; }
+
+  /* assignment */
+  .assignment-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .assign-box {
+    background: #0f0f0f;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .assign-player {
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 4px;
+  }
+  .assign-fighter {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+
+  /* ── scrollbar ── */
+  .ac-dropdown::-webkit-scrollbar { width: 6px; }
+  .ac-dropdown::-webkit-scrollbar-track { background: #1a1a1a; }
+  .ac-dropdown::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+  /* ── mobile ── */
+  @media (max-width: 520px) {
+    .pickers { grid-template-columns: 1fr 40px 1fr; }
+    .vs-badge { font-size: 1.2rem; }
+    .card { padding: 20px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="logo">UFC <span>6</span> Fight Night</div>
+<div class="subtitle">Joe &amp; Jack — Fighter Randomizer</div>
+
+<div class="card">
+  <!-- Pickers -->
+  <div class="pickers">
+    <div class="picker-col">
+      <span class="player-label">Fighter 1</span>
+      <div class="ac-wrap" id="wrap1">
+        <input class="ac-input" id="input1" type="text" placeholder="Search fighters…" autocomplete="off" spellcheck="false">
+        <div class="ac-dropdown" id="drop1"></div>
+      </div>
+    </div>
+
+    <div class="vs-col"><span class="vs-badge">VS</span></div>
+
+    <div class="picker-col">
+      <span class="player-label">Fighter 2</span>
+      <div class="ac-wrap" id="wrap2">
+        <input class="ac-input" id="input2" type="text" placeholder="Search fighters…" autocomplete="off" spellcheck="false">
+        <div class="ac-dropdown" id="drop2"></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Button -->
+  <div class="btn-wrap">
+    <button class="btn-randomize" id="rollBtn" disabled>RANDOMIZE</button>
+  </div>
+
+  <!-- Result area -->
+  <div class="result-wrap" id="resultWrap" style="display:none">
+    <div class="slot-row">
+      <div class="slot-panel" id="slotLeft">
+        <div class="slot-owner">Joe plays</div>
+        <div class="slot-name" id="nameLeft">—</div>
+      </div>
+      <div class="slot-vs">VS</div>
+      <div class="slot-panel" id="slotRight">
+        <div class="slot-owner">Jack plays</div>
+        <div class="slot-name" id="nameRight">—</div>
+      </div>
+    </div>
+    <div class="result-label" id="resultLabel">Fighter assignments locked in</div>
+  </div>
+</div>
+
+<script>
+const ROSTER = [
+  // Heavyweight
+  "Waldo Cortes-Acosta","Tom Aspinall","Ciryl Gane","Fedor Emelianenko",
+  "Antonio Rodrigo Nogueira","Jailton Almeida","Randy Couture","Curtis Blaydes",
+  "Derrick Lewis","Stipe Miocic","Alexander Volkov",
+  // Light heavyweight
+  "Jon Jones","Tito Ortiz","Ken Shamrock","Alexander Gustafsson","Glover Teixeira",
+  "Carlos Ulberg","Paulo Costa","Daniel Cormier","Bogdan Guskov","Jan Blachowicz",
+  "Dominick Reyes","Aleksandar Rakic","Jiri Prochazka","Chuck Liddell","Magomed Ankalaev",
+  // Middleweight
+  "Israel Adesanya","Alex Pereira","Anthony Hernandez","Khamzat Chimaev","Sean Strickland",
+  "Luke Rockhold","Reinier de Ridder","Dricus du Plessis","Gregory Rodrigues","Dan Henderson",
+  "Bo Nickal","Chris Weidman","Anderson Silva","Nassourdine Imavov","Nick Diaz",
+  "Caio Borralho","Robert Whittaker","Vitor Belfort",
+  // Welterweight
+  "Islam Makhachev","Shavkat Rakhmonov","Kamaru Usman","Belal Muhammad","Matt Hughes",
+  "Rafael dos Anjos","Stephen Thompson","Conor McGregor","Joaquin Buckley","Jorge Masvidal",
+  "Ian Machado Garry","Jack Della Maddalena","Leon Edwards","Georges St-Pierre",
+  "Robbie Lawler","Michael Page","Sean Brady","Kevin Holland","Tyron Woodley","Vicente Luque",
+  // Lightweight
+  "Max Holloway","Charles Oliveira","Mauricio Ruffy","Ilia Topuria","Benoit Saint Denis",
+  "Arman Tsarukyan","Clay Guida","Ignacio Bahamondes","Dustin Poirier","Justin Gaethje",
+  "Jalin Turner","Beneil Dariush","Edson Barboza","Donald Cerrone","Frankie Edgar",
+  "Khabib Nurmagomedov","Michael Chandler","Tony Ferguson","Rafael Fiziev","Mateusz Gamrot",
+  "King Green","Renato Moicano",
+  // Featherweight
+  "Alexander Volkanovski","Chan Sung Jung","Aljamain Sterling","Lerone Murphy",
+  "Yair Rodriguez","Jean Silva","Diego Lopes","Dan Hooker","Jose Aldo","Brian Ortega",
+  "Movsar Evloev","Patricio Pitbull","Youssef Zalal",
+  // Bantamweight
+  "Petr Yan","Sean O'Malley","Dominick Cruz","TJ Dillashaw","Cory Sandhagen",
+  "Song Yadong","Deiveson Figueiredo","Umar Nurmagomedov","Marlon Vera","Cody Garbrandt",
+  "Pedro Munhoz","Merab Dvalishvili","Henry Cejudo","Mario Bautista",
+  // Flyweight
+  "Manel Kape","Demetrious Johnson","Amir Albazi","Joshua Van","Kai Askaura",
+  "Brandon Moreno","Tim Elliott","Brandon Royval","Charles Johnson","Alexandre Pantoja",
+  "Asu Almabayev","Tatsuro Taira",
+  // Women's bantamweight
+  "Raquel Pennington","Norma Dumont","Yana Santos","Kayla Harrison","Macy Chiasson",
+  "Holly Holm","Ronda Rousey","Julianna Pena","Amanda Nunes",
+  // Women's flyweight
+  "Valentina Shevchenko","Maycee Barber","Natalia Silva","Alexa Grasso","Manon Fiorot",
+  "Rose Namajunas","Erin Blanchfield","Miranda Maverick","Jasmine Jasudavicius",
+  // Women's strawweight
+  "Zhang Weili","Joanna Jedrzejczyk","Virna Jandiroba","Iasmin Lucindo","Carla Esparza",
+  "Yan Xiaonan","Jessica Andrade","Amanda Lemos","Mackenzie Dern"
+].sort();
+
+// ── Autocomplete ──────────────────────────────────────────
+function makeAC(inputEl, dropEl, onChange) {
+  let selected = null, focusIdx = -1, items = [];
+
+  function filter(q) {
+    if (!q) return [];
+    const lq = q.toLowerCase();
+    return ROSTER.filter(n => n.toLowerCase().includes(lq)).slice(0, 12);
+  }
+
+  function highlight(name, q) {
+    const lq = q.toLowerCase(), ln = name.toLowerCase();
+    const i = ln.indexOf(lq);
+    if (i < 0) return name;
+    return name.slice(0,i) + '<mark>' + name.slice(i, i+q.length) + '</mark>' + name.slice(i+q.length);
+  }
+
+  function render(results) {
+    items = results;
+    focusIdx = -1;
+    dropEl.innerHTML = '';
+    if (!results.length) { dropEl.classList.remove('open'); return; }
+    results.forEach((name, idx) => {
+      const el = document.createElement('div');
+      el.className = 'ac-item';
+      el.innerHTML = highlight(name, inputEl.value);
+      el.addEventListener('mousedown', e => { e.preventDefault(); pick(name); });
+      el.addEventListener('mousemove', () => { focusIdx = idx; updateFocus(); });
+      dropEl.appendChild(el);
+    });
+    dropEl.classList.add('open');
+  }
+
+  function updateFocus() {
+    [...dropEl.children].forEach((el, i) => el.classList.toggle('focused', i === focusIdx));
+  }
+
+  function pick(name) {
+    selected = name;
+    inputEl.value = name;
+    dropEl.classList.remove('open');
+    onChange(name);
+  }
+
+  function clear() {
+    selected = null;
+    onChange(null);
+  }
+
+  inputEl.addEventListener('input', () => {
+    const q = inputEl.value.trim();
+    clear();
+    render(filter(q));
+  });
+
+  inputEl.addEventListener('keydown', e => {
+    if (!dropEl.classList.contains('open')) return;
+    if (e.key === 'ArrowDown')  { e.preventDefault(); focusIdx = Math.min(focusIdx+1, items.length-1); updateFocus(); }
+    if (e.key === 'ArrowUp')    { e.preventDefault(); focusIdx = Math.max(focusIdx-1, 0); updateFocus(); }
+    if (e.key === 'Enter')      { if (focusIdx >= 0) pick(items[focusIdx]); }
+    if (e.key === 'Escape')     { dropEl.classList.remove('open'); }
+  });
+
+  document.addEventListener('click', e => {
+    if (!dropEl.parentElement.contains(e.target)) dropEl.classList.remove('open');
+  });
+
+  return { getValue: () => selected };
+}
+
+// ── State ─────────────────────────────────────────────────
+let f1 = null, f2 = null;
+
+const ac1 = makeAC(document.getElementById('input1'), document.getElementById('drop1'), v => { f1 = v; checkReady(); });
+const ac2 = makeAC(document.getElementById('input2'), document.getElementById('drop2'), v => { f2 = v; checkReady(); });
+
+const rollBtn = document.getElementById('rollBtn');
+
+function checkReady() {
+  rollBtn.disabled = !(f1 && f2 && f1 !== f2);
+}
+
+// ── Roll animation ────────────────────────────────────────
+const FAKE_NAMES = [
+  "Jon Jones","Khabib Nurmagomedov","Conor McGregor","Israel Adesanya","Alex Pereira",
+  "Stipe Miocic","Amanda Nunes","Valentina Shevchenko","Sean O'Malley","Kamaru Usman",
+  "Daniel Cormier","Anderson Silva","Georges St-Pierre","Max Holloway","Ilia Topuria"
+];
+
+const resultWrap  = document.getElementById('resultWrap');
+const nameLeft    = document.getElementById('nameLeft');
+const nameRight   = document.getElementById('nameRight');
+const slotLeft    = document.getElementById('slotLeft');
+const slotRight   = document.getElementById('slotRight');
+const resultLabel = document.getElementById('resultLabel');
+
+rollBtn.addEventListener('click', () => {
+  if (!f1 || !f2) return;
+
+  // decide who gets who — fully random each time
+  const joeGets  = Math.random() < 0.5 ? f1 : f2;
+  const jackGets = joeGets === f1 ? f2 : f1;
+
+  rollBtn.disabled = true;
+  resultWrap.style.display = 'flex';
+  resultLabel.classList.remove('visible');
+  slotLeft.classList.remove('winner');
+  slotRight.classList.remove('winner');
+  nameLeft.classList.add('rolling');
+  nameRight.classList.add('rolling');
+  nameLeft.textContent  = '???';
+  nameRight.textContent = '???';
+
+  const pool = [...ROSTER];
+  let ticks = 0;
+  const totalTicks = 28;
+  const interval = setInterval(() => {
+    ticks++;
+    // show random names during spin
+    const r1 = pool[Math.floor(Math.random() * pool.length)];
+    const r2 = pool[Math.floor(Math.random() * pool.length)];
+    if (ticks < totalTicks - 4) {
+      nameLeft.textContent  = r1;
+      nameRight.textContent = r2;
+    } else {
+      // slow down, show final answer approaching
+      nameLeft.textContent  = joeGets;
+      nameRight.textContent = jackGets;
+    }
+
+    if (ticks >= totalTicks) {
+      clearInterval(interval);
+      nameLeft.classList.remove('rolling');
+      nameRight.classList.remove('rolling');
+      nameLeft.textContent  = joeGets;
+      nameRight.textContent = jackGets;
+      resultLabel.classList.add('visible');
+      rollBtn.disabled = false;
+    }
+  }, 80);
+});
+</script>
+</body>
+</html>
