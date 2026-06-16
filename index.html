@@ -555,6 +555,13 @@ rollBtn.addEventListener('click', () => {
 const TTS_URL = 'https://tts-proxy-i1sn.onrender.com';
 let ttsAudio = null;
 
+function speakBtn(btn) {
+  const el = document.getElementById('scenarioText');
+  const txt = (el ? (el.innerText || el.textContent) : '').trim();
+  if (!txt) { return; }
+  speakScenario(btn, txt);
+}
+
 async function speakScenario(btn, text) {
   // iOS audio unlock MUST happen synchronously before any await
   if (!ttsAudio) {
